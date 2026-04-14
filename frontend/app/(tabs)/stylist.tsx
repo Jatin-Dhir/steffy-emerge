@@ -18,6 +18,8 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useWardrobe } from '../../contexts/WardrobeContext';
+import { useToast } from '../../contexts/ToastContext';
+import * as Haptics from 'expo-haptics';
 import Constants from 'expo-constants';
 import Colors from '../../constants/Colors';
 import { spacing, typography, radius } from '../../constants/Theme';
@@ -89,6 +91,7 @@ const QUICK_PROMPTS = [
 
 export default function Stylist() {
   const { items, outfits, addOutfit } = useWardrobe();
+  const { showToast } = useToast();
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -124,6 +127,7 @@ export default function Stylist() {
     const text = (messageText ?? input).trim();
     if (!text || loading) return;
 
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     setInput('');
     Keyboard.dismiss();
 
@@ -197,6 +201,8 @@ export default function Stylist() {
         ai_generated: true,
       });
       if (saved) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        showToast('Look saved');
         router.push({ pathname: '/(tabs)/looks', params: { outfitId: saved.outfit_id } } as any);
       }
     } catch {
@@ -293,7 +299,10 @@ export default function Stylist() {
                     <Animated.View key={i} entering={FadeInUp.delay(i * 80)}>
                       <TouchableOpacity
                         style={styles.quickPrompt}
-                        onPress={() => sendMessage(prompt.text)}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+                          sendMessage(prompt.text);
+                        }}
                         activeOpacity={0.75}
                       >
                         <View style={[styles.quickPromptIcon, { backgroundColor: prompt.color + '20' }]}>
@@ -444,7 +453,7 @@ export default function Stylist() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1, backgroundColor: 'transparent' },
   safeArea: { flex: 1 },
 
   header: {
@@ -458,9 +467,9 @@ const styles = StyleSheet.create({
   subtitle: { ...typography.caption, color: Colors.textSecondary, marginTop: 2 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   clearBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -507,16 +516,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     backgroundColor: Colors.surface,
-    borderRadius: radius.lg,
+    borderRadius: radius.xxl,
     borderWidth: 1,
     borderColor: Colors.border,
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
   quickPromptIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.md,
+    width: 40,
+    height: 40,
+    borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -529,30 +538,30 @@ const styles = StyleSheet.create({
   },
   msgRowUser: { justifyContent: 'flex-end' },
   msgRowAssistant: { justifyContent: 'flex-start' },
-  msgAvatar: { marginRight: spacing.sm, borderRadius: 18, overflow: 'hidden' },
+  msgAvatar: { marginRight: spacing.sm, borderRadius: radius.full, overflow: 'hidden' },
   msgAvatarGradient: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
   bubble: {
     paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    borderRadius: 18,
+    paddingVertical: 12,
+    borderRadius: radius.xxl,
     maxWidth: '100%',
   },
   bubbleUser: {
     backgroundColor: Colors.primary,
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: radius.sm,
     alignSelf: 'flex-end',
   },
   bubbleAssistant: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.surfaceElevated,
     borderWidth: 1,
     borderColor: Colors.border,
-    borderBottomLeftRadius: 4,
+    borderBottomLeftRadius: radius.sm,
     alignSelf: 'flex-start',
   },
   bubbleText: { fontSize: 15, lineHeight: 22 },
@@ -570,7 +579,7 @@ const styles = StyleSheet.create({
   viewLookCard: {
     marginTop: spacing.sm,
     backgroundColor: Colors.primaryMuted,
-    borderRadius: radius.lg,
+    borderRadius: radius.xxl,
     padding: spacing.md,
     borderWidth: 1,
     borderColor: Colors.primary + '30',
@@ -626,7 +635,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: spacing.sm,
     backgroundColor: Colors.surface,
-    borderRadius: 24,
+    borderRadius: radius.xxl,
     borderWidth: 1,
     borderColor: Colors.border,
     paddingLeft: spacing.md,
@@ -640,12 +649,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.text,
   },
-  sendBtn: { borderRadius: 20, overflow: 'hidden' },
+  sendBtn: { borderRadius: radius.full, overflow: 'hidden' },
   sendBtnDisabled: { opacity: 0.5 },
   sendBtnGradient: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },

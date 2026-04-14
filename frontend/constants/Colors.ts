@@ -1,45 +1,50 @@
 /**
- * Steffy Design System - Elegant fashion-forward palette
- * Soft rose gold accent on warm cream base
+ * Steffy Design System - White & soft pink / rose gold
+ * Warm white, baby powder pink, and dusty rose. Soft and pretty.
  */
 export default {
-  background: '#FAF8F5',
+  background: '#FFFBFB',
   surface: '#FFFFFF',
-  surfaceElevated: '#FFFFFF',
+  surfaceElevated: '#FFF5F7',
 
-  text: '#1A1A2E',
-  textSecondary: '#6E6B7B',
-  textMuted: '#A8A5B2',
+  text: '#2D1B2E',
+  textSecondary: '#6B5B6C',
+  textMuted: '#9E8E9F',
 
-  primary: '#C2185B',
-  primaryLight: '#E91E73',
-  primaryMuted: 'rgba(194, 24, 91, 0.08)',
-  primarySoft: 'rgba(194, 24, 91, 0.15)',
+  primary: '#B76E79',
+  primaryLight: '#D4A5A5',
+  primaryMuted: 'rgba(183, 110, 121, 0.12)',
+  primarySoft: 'rgba(183, 110, 121, 0.18)',
 
-  secondary: '#8E4585',
-  accent: '#D4A574',
-  accentMuted: 'rgba(212, 165, 116, 0.12)',
+  secondary: '#C9A9A6',
+  accent: '#E8B4B8',
+  accentMuted: 'rgba(232, 180, 184, 0.25)',
 
-  border: 'rgba(26, 26, 46, 0.07)',
-  borderStrong: 'rgba(26, 26, 46, 0.14)',
-  divider: 'rgba(26, 26, 46, 0.05)',
+  border: 'rgba(183, 110, 121, 0.12)',
+  borderStrong: 'rgba(183, 110, 121, 0.22)',
+  divider: 'rgba(183, 110, 121, 0.06)',
 
-  success: '#2E7D32',
-  warning: '#E65100',
-  error: '#C62828',
-  info: '#1565C0',
+  success: '#8F6B72',
+  warning: '#A67B82',
+  error: '#9E5C66',
+  info: '#B76E79',
 
-  overlay: 'rgba(26, 26, 46, 0.55)',
-  overlayLight: 'rgba(26, 26, 46, 0.04)',
+  overlay: 'rgba(45, 27, 46, 0.4)',
+  overlayLight: 'rgba(183, 110, 121, 0.06)',
 
-  glass: 'rgba(255, 255, 255, 0.95)',
-  glassBorder: 'rgba(26, 26, 46, 0.06)',
+  glass: 'rgba(255, 251, 251, 0.94)',
+  glassBorder: 'rgba(183, 110, 121, 0.1)',
   glassElevated: '#FFFFFF',
 
-  gradientStart: '#C2185B',
-  gradientMiddle: '#8E4585',
-  gradientEnd: '#D4A574',
+  gradientStart: '#E8B4B8',
+  gradientMiddle: '#D4A5A5',
+  gradientEnd: '#B76E79',
 
-  mannequinBg: '#F5F0EB',
-  mannequinStroke: '#1A1A2E',
+  mannequinBg: '#FFF5F7',
+  mannequinStroke: '#B76E79',
+
+  /** Ribbon swirl - shadow, main, highlight for 3D */
+  ribbonShadow: 'rgba(155, 95, 105, 0.5)',
+  ribbonMain: '#E8B4B8',
+  ribbonHighlight: '#FFF0F2',
 };

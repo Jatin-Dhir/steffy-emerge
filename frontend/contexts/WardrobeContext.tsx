@@ -256,23 +256,19 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     itemIds?: string[];
     bodyPhoto?: string;
   }): Promise<TryOnResult | null> => {
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/ai/try-on`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          outfit_id: outfitId,
-          item_ids: itemIds,
-          body_photo_base64: bodyPhoto,
-        }),
-        credentials: 'include',
-      });
-      const data = await response.json().catch(() => null);
-      if (response.ok && data) return data as TryOnResult;
-    } catch {
-      // AI unavailable
-    }
-    return null;
+    const response = await fetch(`${BACKEND_URL}/api/ai/try-on`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        outfit_id: outfitId,
+        item_ids: itemIds,
+        body_photo_base64: bodyPhoto,
+      }),
+      credentials: 'include',
+    });
+    const data = await response.json().catch(() => null);
+    if (response.ok && data) return data as TryOnResult;
+    throw new Error(data?.detail || 'Image generation failed');
   };
 
   return (

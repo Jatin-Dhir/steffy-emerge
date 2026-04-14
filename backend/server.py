@@ -23,6 +23,7 @@ load_dotenv(ROOT_DIR / '.env')
 mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
 db_name = os.environ.get('DB_NAME', 'test_database')
 gemini_api_key = os.environ.get('GEMINI_API_KEY', '')
+hf_token = os.environ.get('HF_TOKEN', '')
 password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 client = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=3000, connectTimeoutMS=3000)
@@ -31,7 +32,7 @@ db = client[db_name]
 if gemini_api_key:
     genai.configure(api_key=gemini_api_key)
 
-_GEMINI_MODELS = ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-2.5-flash"]
+_GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite", "gemini-2.0-flash"]
 gemini_model = genai.GenerativeModel(_GEMINI_MODELS[0]) if gemini_api_key else None
 
 logging.basicConfig(
@@ -598,92 +599,113 @@ Respond ONLY with this exact JSON format:
         raise HTTPException(status_code=500, detail=f"Failed to generate outfit: {e}")
 
 # ============================================================
-# AI: Virtual try-on (image generation)
+# AI: Virtual try-on (image generation via Hugging Face IDM-VTON)
 # ============================================================
 
-_IMAGE_GEN_MODELS = ["gemini-2.5-flash-image"]
+async def _try_generate_tryon_image(
+    outfit_desc: str,
+    body_photo_b64: Optional[str] = None,
+    garment_image_b64: Optional[str] = None,
+) -> Optional[bytes]:
+    """Generate try-on image using Hugging Face IDM-VTON. Needs body photo + garment image."""
+    if not hf_token or not body_photo_b64 or not garment_image_b64:
+        return None
+    try:
+        from gradio_client import Client
+        from PIL import Image
+        import tempfile
 
-async def _try_generate_tryon_image(outfit_desc: str, body_photo_b64: Optional[str] = None) -> Optional[bytes]:
-    """Generate try-on image using Gemini. Returns PNG bytes or None on failure."""
+        def _do_gen():
+            try:
+                human_b64 = body_photo_b64.split(",")[-1] if "," in body_photo_b64 else body_photo_b64
+                garm_b64 = garment_image_b64.split(",")[-1] if "," in garment_image_b64 else garment_image_b64
+                human_img = Image.open(io.BytesIO(base64.b64decode(human_b64))).convert("RGB")
+                garm_img = Image.open(io.BytesIO(base64.b64decode(garm_b64))).convert("RGB")
+                with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as fh:
+                    human_img.save(fh, format="PNG")
+                    human_path = fh.name
+                with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as fg:
+                    garm_img.save(fg, format="PNG")
+                    garm_path = fg.name
+                try:
+                    client = Client("yisol/IDM-VTON", hf_token=hf_token)
+                    human_dict = {"background": human_path, "layers": [], "composite": None}
+                    result = client.predict(
+                        human_dict,
+                        garm_path,
+                        outfit_desc,
+                        True,   # is_checked (auto mask)
+                        False,  # is_checked_crop
+                        30,     # denoise_steps
+                        42,     # seed
+                        api_name="/tryon",
+                    )
+                    out_path = result[0] if isinstance(result, (list, tuple)) else result
+                    if out_path and Path(out_path).exists():
+                        with open(out_path, "rb") as f:
+                            return f.read()
+                finally:
+                    try:
+                        Path(human_path).unlink(missing_ok=True)
+                        Path(garm_path).unlink(missing_ok=True)
+                    except Exception:
+                        pass
+            except Exception as e:
+                logger.warning(f"IDM-VTON try-on failed: {e}", exc_info=True)
+            return None
+
+        return await asyncio.to_thread(_do_gen)
+    except Exception as e:
+        logger.warning(f"Try-on image generation failed: {e}")
+        return None
+
+async def _try_gemini_tryon_image(outfit_desc: str, body_photo_b64: Optional[str] = None) -> Optional[bytes]:
+    """Generate try-on image via Gemini image models (priority order)."""
+    if not gemini_api_key:
+        return None
     try:
         from google import genai as genai_new
         from google.genai import types
         client = genai_new.Client(api_key=gemini_api_key)
-    except Exception as e:
-        logger.warning(f"Try-on image: failed to init client: {e}")
-        return None
 
-    def _do_gen():
-        try:
+        def _do():
+            prompt = f"Full-body fashion photo of a person wearing: {outfit_desc}. Editorial style, neutral background, photorealistic."
+            contents = [prompt]
             if body_photo_b64:
                 b64 = body_photo_b64.split(",")[-1] if "," in body_photo_b64 else body_photo_b64
-                img_bytes = base64.b64decode(b64)
-                pil_img = __import__("PIL.Image", fromlist=["Image"]).Image.open(io.BytesIO(img_bytes)).convert("RGB")
-                prompt = f"""Generate a photorealistic image of this exact person wearing: {outfit_desc}.
-Keep the same pose, face, and body. The person should be wearing these clothes naturally.
-Professional fashion photography, neutral background, natural lighting. High quality."""
-                contents = [prompt, pil_img]
-            else:
-                prompt = f"""A full-body fashion photograph of a person wearing: {outfit_desc}.
-Professional studio lighting, neutral gray background, editorial style. Photorealistic, high quality."""
-                contents = [prompt]
-
-            for model_name in _IMAGE_GEN_MODELS:
+                pil_img = __import__("PIL.Image", fromlist=["Image"]).Image.open(io.BytesIO(base64.b64decode(b64))).convert("RGB")
+                prompt_edit = f"Photorealistic image of this exact person wearing: {outfit_desc}. Same pose and face."
+                contents = [prompt_edit, pil_img]
+            image_models = [
+                "imagen-4.0-ultra-generate-001",
+                "gemini-2.5-flash-image",
+                "gemini-2.0-flash-exp-image-generation",
+            ]
+            for model in image_models:
                 try:
-                    if "imagen" in model_name.lower():
-                        resp = client.models.generate_images(
-                            model=model_name,
-                            prompt=prompt,
-                            config=types.GenerateImagesConfig(number_of_images=1),
-                        )
-                        for gen_img in (getattr(resp, "generated_images", None) or []):
-                            img = getattr(gen_img, "image", None)
-                            if img:
+                    if "imagen" in model:
+                        r = client.models.generate_images(model=model, prompt=prompt, config=types.GenerateImagesConfig(number_of_images=1))
+                        for gi in (getattr(r, "generated_images", None) or []):
+                            if getattr(gi, "image", None):
                                 buf = io.BytesIO()
-                                img.save(buf, format="PNG")
+                                gi.image.save(buf, format="PNG")
                                 return buf.getvalue()
                     else:
-                        config = types.GenerateContentConfig(
-                            response_modalities=["IMAGE"],
-                            image_config=types.ImageConfig(aspect_ratio="3:4"),
-                        )
-                        resp = client.models.generate_content(
-                            model=model_name,
-                            contents=contents,
-                            config=config,
-                        )
-                        parts = getattr(resp, "parts", None) or []
-                        if not parts:
-                            for c in getattr(resp, "candidates", []) or []:
-                                content = getattr(c, "content", None)
-                                if content:
-                                    parts = getattr(content, "parts", None) or []
-                                    break
-                        for part in parts:
-                            if hasattr(part, "inline_data") and part.inline_data:
-                                raw = getattr(part.inline_data, "data", None)
-                                if raw is not None:
-                                    return raw if isinstance(raw, bytes) else base64.b64decode(raw)
-                            if hasattr(part, "as_image"):
-                                try:
-                                    pil_img = part.as_image()
-                                    buf = io.BytesIO()
-                                    pil_img.save(buf, format="PNG")
-                                    return buf.getvalue()
-                                except Exception:
-                                    pass
-                except Exception as em:
-                    logger.warning(f"Image gen model {model_name} failed: {em}")
+                        cfg = types.GenerateContentConfig(response_modalities=["IMAGE"], image_config=types.ImageConfig(aspect_ratio="3:4"))
+                        r = client.models.generate_content(model=model, contents=contents, config=cfg)
+                        for c in getattr(r, "candidates", []) or []:
+                            for p in getattr(getattr(c, "content", None), "parts", None) or []:
+                                if hasattr(p, "inline_data") and p.inline_data:
+                                    raw = getattr(p.inline_data, "data", None)
+                                    if raw:
+                                        return raw if isinstance(raw, bytes) else base64.b64decode(raw)
+                except Exception as model_err:
+                    logger.warning(f"Try-on image model failed ({model}): {model_err}")
                     continue
             return None
-        except Exception as e:
-            logger.warning(f"Try-on image _do_gen failed: {e}")
-            return None
-
-    try:
-        return await asyncio.to_thread(_do_gen)
+        return await asyncio.to_thread(_do)
     except Exception as e:
-        logger.warning(f"Try-on image generation failed: {e}")
+        logger.warning(f"Gemini try-on image failed: {e}")
         return None
 
 @api_router.post("/ai/try-on")
@@ -707,13 +729,13 @@ async def virtual_try_on(request: TryOnRequest,
             if outfit:
                 item_ids = outfit.get("item_ids", [])
 
-        # Fetch item details
+        # Fetch item details for outfit description
         items = []
         try:
             for iid in item_ids:
                 item = await db.clothing_items.find_one(
                     {"item_id": iid, "user_id": current_user.user_id},
-                    {"_id": 0, "name": 1, "category": 1, "color": 1, "fabric": 1, "pattern": 1, "fit": 1}
+                    {"_id": 0, "name": 1, "category": 1, "color": 1, "fabric": 1, "pattern": 1, "fit": 1, "image_base64": 1}
                 )
                 if item:
                     items.append(item)
@@ -724,13 +746,19 @@ async def virtual_try_on(request: TryOnRequest,
                     items.append(mem[iid])
 
         if not items:
-            raise HTTPException(status_code=400, detail="No valid items found for try-on")
+            raise HTTPException(
+                status_code=400,
+                detail="No valid items found for try-on. Save an outfit with at least one wardrobe item."
+            )
 
-        outfit_desc = ", ".join([
-            f"{item.get('color', '')} {item.get('fabric', '')} {item['name']}".strip()
-            for item in items
-        ])
+        outfit_desc = ", ".join(
+            [
+                f"{item.get('color', '')} {item.get('fabric', '')} {item['name']}".strip()
+                for item in items
+            ]
+        )
 
+        # Resolve body photo (from request or stored profile) for Gemini image edit
         body_photo = request.body_photo_base64
         if not body_photo:
             try:
@@ -742,12 +770,13 @@ async def virtual_try_on(request: TryOnRequest,
             if profile:
                 body_photo = profile.get("body_photo_base64")
 
-        # Try to generate actual image first (any failure -> fall through to text)
+        # Gemini ImageGen Ultra only (no IDM-VTON)
         image_bytes = None
-        try:
-            image_bytes = await _try_generate_tryon_image(outfit_desc, body_photo)
-        except Exception as img_e:
-            logger.warning(f"Try-on image request failed: {img_e}")
+        if gemini_api_key:
+            try:
+                image_bytes = await _try_gemini_tryon_image(outfit_desc, body_photo)
+            except Exception as g_e:
+                logger.warning(f"Gemini image try-on failed: {g_e}")
         if image_bytes:
             try:
                 image_base64 = base64.b64encode(image_bytes).decode("utf-8")
@@ -760,37 +789,14 @@ async def virtual_try_on(request: TryOnRequest,
                 }
             except Exception as enc_e:
                 logger.warning(f"Try-on image encode failed: {enc_e}")
-
-        # Fallback: text description (never raise so we don't 500)
-        description = f"A stylish look with {outfit_desc}."
-        if body_photo:
-            try:
-                from PIL import Image
-                b64 = body_photo.split(",")[-1] if "," in body_photo else body_photo
-                img_bytes = base64.b64decode(b64)
-                img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-                prompt = f"""Describe how this person would look wearing: {outfit_desc}. 3-4 sentences, vivid and professional."""
-                result = await _gemini_generate(prompt, [img])
-                if result and result.text:
-                    description = result.text
-            except Exception as e:
-                logger.warning(f"Try-on fallback text with photo failed: {e}")
-        else:
-            try:
-                prompt = f"""Describe this outfit in a vivid way: {outfit_desc}. 4 sentences."""
-                result = await _gemini_generate(prompt)
-                if result and result.text:
-                    description = (result.text or "").strip() + " Upload your photo in Settings for AI image try-on."
-            except Exception as e:
-                logger.warning(f"Try-on fallback text failed: {e}")
-
-        return {
-            "type": "description",
-            "description": description,
-            "outfit_description": outfit_desc,
-            "items": [{"name": i["name"], "category": i["category"]} for i in items],
-            "note": "Image generation unavailable. You can still use Try-On for a text description.",
-        }
+        # Image-only mode: never return text fallback
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Image generation failed on all configured image models "
+                "(Imagen 4 Ultra / Gemini Flash Image). Check API key permissions and quota."
+            ),
+        )
 
     except HTTPException:
         raise

@@ -18,9 +18,12 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { useWardrobe, Outfit, ClothingItem, TryOnResult } from '../../contexts/WardrobeContext';
+import { useToast } from '../../contexts/ToastContext';
+import * as Haptics from 'expo-haptics';
 import Colors from '../../constants/Colors';
 import { spacing, typography, radius } from '../../constants/Theme';
 import Animated, { FadeIn, FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
+import ThemedLoader from '../../components/ThemedLoader';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - spacing.lg * 2 - spacing.md) / 2;
@@ -253,6 +256,7 @@ const thumbStyles = StyleSheet.create({
 
 export default function Looks() {
   const { items, outfits, deleteOutfit, generateOutfitAI, addOutfit, tryOnOutfit, profile } = useWardrobe();
+  const { showToast } = useToast();
   const params = useLocalSearchParams<{ outfitId?: string }>();
 
   const [selectedOutfit, setSelectedOutfit] = useState<Outfit | null>(null);
@@ -296,6 +300,7 @@ export default function Looks() {
     try {
       const result = await generateOutfitAI({ occasion: occasion || undefined, weather: weather || undefined });
       if (result?.outfit) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
         setGeneratedOutfit(result.outfit);
       } else {
         Alert.alert('AI unavailable', 'Make sure GEMINI_API_KEY is set in backend .env');
@@ -316,6 +321,8 @@ export default function Looks() {
       ai_generated: true,
     });
     if (saved) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      showToast('Outfit saved');
       setGeneratedOutfit(null);
       setShowGenerator(false);
       setSelectedOutfit(saved);
@@ -444,11 +451,11 @@ export default function Looks() {
           {outfits.length === 0 ? (
             <Animated.View entering={FadeIn} style={styles.emptyState}>
               <View style={styles.emptyIcon}>
-                <Ionicons name="color-palette-outline" size={40} color={Colors.primary} />
+                <Ionicons name="color-palette-outline" size={48} color={Colors.primary} />
               </View>
               <Text style={styles.emptyTitle}>No outfits yet</Text>
               <Text style={styles.emptySubtitle}>
-                Let AI build perfect outfits from your wardrobe, or create one yourself.
+                Generate looks with AI from your wardrobe, or mix and match pieces yourself.
               </Text>
               <TouchableOpacity
                 style={styles.emptyActionBtn}
@@ -673,7 +680,7 @@ export default function Looks() {
                     colors={[Colors.primary + '20', Colors.secondary + '20']}
                     style={styles.tryOnLoadingCard}
                   >
-                    <ActivityIndicator size="large" color={Colors.primary} />
+                    <ThemedLoader size="large" />
                     <Text style={styles.tryOnLoadingText}>Steffy is styling you...</Text>
                     <Text style={styles.tryOnLoadingSubtext}>
                       {profile?.body_photo_base64
@@ -722,7 +729,7 @@ export default function Looks() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1, backgroundColor: 'transparent' },
   safeArea: { flex: 1 },
 
   header: {
@@ -795,18 +802,18 @@ const styles = StyleSheet.create({
   },
   aiBadgeText: { fontSize: 9, fontWeight: '700', color: Colors.primary },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.lg },
   outfitCard: {
     width: CARD_WIDTH,
     backgroundColor: Colors.surface,
-    borderRadius: radius.lg,
+    borderRadius: radius.xxl,
     borderWidth: 1,
     borderColor: Colors.border,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowColor: '#2D1B2E',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
     elevation: 2,
   },
   outfitCardSelected: {
@@ -814,8 +821,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   outfitCardThumbArea: {
-    height: 80,
-    backgroundColor: Colors.mannequinBg,
+    height: 88,
+    backgroundColor: Colors.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.md,
@@ -828,9 +835,9 @@ const styles = StyleSheet.create({
 
   emptyState: { alignItems: 'center', paddingVertical: 80, paddingHorizontal: spacing.xl },
   emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     backgroundColor: Colors.primaryMuted,
     alignItems: 'center',
     justifyContent: 'center',
@@ -841,7 +848,7 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
     marginBottom: spacing.xl,
   },
   emptyActionBtn: { borderRadius: radius.full, overflow: 'hidden' },
@@ -858,8 +865,8 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: Colors.overlay, justifyContent: 'flex-end' },
   modalSheet: {
     backgroundColor: Colors.background,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
+    borderTopLeftRadius: radius.xxl,
+    borderTopRightRadius: radius.xxl,
     maxHeight: '92%',
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,

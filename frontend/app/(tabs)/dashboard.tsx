@@ -16,7 +16,15 @@ import { useRouter } from 'expo-router';
 import { useWardrobe, ClothingItem, Outfit } from '../../contexts/WardrobeContext';
 import Colors from '../../constants/Colors';
 import { spacing, typography, radius } from '../../constants/Theme';
-import Animated, { FadeIn, FadeInDown, FadeInRight, SlideInRight } from 'react-native-reanimated';
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeInRight,
+  SlideInRight,
+  useSharedValue,
+  useAnimatedScrollHandler,
+} from 'react-native-reanimated';
+import SwirlBackground from '../../components/SwirlBackground';
 
 const { width } = Dimensions.get('window');
 
@@ -45,38 +53,38 @@ const QUICK_ACTIONS: QuickAction[] = [
     label: 'Add Item',
     sub: 'AI detect',
     route: '/(tabs)/wardrobe',
-    gradient: [Colors.gradientStart, Colors.gradientMiddle],
+    gradient: [Colors.gradientStart, Colors.gradientEnd],
   },
   {
     icon: 'sparkles',
     label: 'AI Outfits',
     sub: 'Generate',
     route: '/(tabs)/looks',
-    gradient: [Colors.gradientMiddle, Colors.gradientEnd],
+    gradient: [Colors.primaryLight, Colors.secondary],
   },
   {
     icon: 'chatbubble-ellipses',
     label: 'Stylist',
     sub: 'Ask Steffy',
     route: '/(tabs)/stylist',
-    gradient: ['#6C63FF', '#8E4585'],
+    gradient: [Colors.secondary, Colors.accent],
   },
   {
     icon: 'body',
     label: 'Try On',
     sub: 'Virtual',
     route: '/(tabs)/looks',
-    gradient: [Colors.accent, '#E8926A'],
+    gradient: [Colors.primary, Colors.primaryLight],
   },
 ];
 
 const CATEGORY_CARDS = [
-  { id: 'tops', label: 'Tops', icon: 'shirt-outline' as const, color: '#F4A8C7' },
-  { id: 'bottoms', label: 'Bottoms', icon: 'git-branch-outline' as const, color: '#A8C7F4' },
-  { id: 'dresses', label: 'Dresses', icon: 'woman-outline' as const, color: '#F4C7A8' },
-  { id: 'jackets', label: 'Jackets', icon: 'layers-outline' as const, color: '#C7A8F4' },
-  { id: 'shoes', label: 'Shoes', icon: 'footsteps-outline' as const, color: '#A8F4C7' },
-  { id: 'accessories', label: 'Accessories', icon: 'watch-outline' as const, color: '#F4E4A8' },
+  { id: 'tops', label: 'Tops', icon: 'shirt-outline' as const, color: Colors.primary },
+  { id: 'bottoms', label: 'Bottoms', icon: 'git-branch-outline' as const, color: Colors.primaryLight },
+  { id: 'dresses', label: 'Dresses', icon: 'woman-outline' as const, color: Colors.secondary },
+  { id: 'jackets', label: 'Jackets', icon: 'layers-outline' as const, color: Colors.accent },
+  { id: 'shoes', label: 'Shoes', icon: 'footsteps-outline' as const, color: Colors.primary },
+  { id: 'accessories', label: 'Accessories', icon: 'watch-outline' as const, color: Colors.secondary },
 ];
 
 export default function Dashboard() {
@@ -97,12 +105,23 @@ export default function Dashboard() {
   );
 
   const recentItems = useMemo(() => items.slice(-6).reverse(), [items]);
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      scrollY.value = e.contentOffset.y;
+    },
+  });
 
   return (
     <View style={styles.container}>
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <SwirlBackground scrollY={scrollY} />
+      </View>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView
+        <Animated.ScrollView
+          onScroll={onScroll}
+          scrollEventThrottle={16}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
@@ -294,8 +313,8 @@ export default function Dashboard() {
                       onPress={() => router.push('/(tabs)/wardrobe' as any)}
                       activeOpacity={0.8}
                     >
-                      <View style={[styles.catIcon, { backgroundColor: cat.color + '40' }]}>
-                        <Ionicons name={cat.icon} size={20} color={cat.color.replace('40', '')} />
+                      <View style={[styles.catIcon, { backgroundColor: Colors.primaryMuted }]}>
+                        <Ionicons name={cat.icon} size={22} color={cat.color} />
                       </View>
                       <Text style={styles.catLabel}>{cat.label}</Text>
                       <Text style={styles.catCount}>{count}</Text>
@@ -383,7 +402,7 @@ export default function Dashboard() {
               </LinearGradient>
             </Animated.View>
           )}
-        </ScrollView>
+        </Animated.ScrollView>
       </SafeAreaView>
     </View>
   );
@@ -392,7 +411,7 @@ export default function Dashboard() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   safeArea: { flex: 1 },
-  scrollContent: { paddingBottom: 100 },
+  scrollContent: { paddingBottom: 100, paddingTop: spacing.sm },
 
   hero: {
     flexDirection: 'row',
@@ -437,7 +456,7 @@ const styles = StyleSheet.create({
   ootdCard: {
     marginHorizontal: spacing.lg,
     marginBottom: spacing.xl,
-    borderRadius: radius.xl,
+    borderRadius: radius.xxl,
     overflow: 'hidden',
   },
   ootdGradient: {
@@ -488,7 +507,7 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.lg,
     marginBottom: spacing.xl,
     backgroundColor: Colors.surface,
-    borderRadius: radius.xl,
+    borderRadius: radius.xxl,
     borderWidth: 1,
     borderColor: Colors.border,
     borderStyle: 'dashed',
@@ -500,74 +519,74 @@ const styles = StyleSheet.create({
   ootdEmptyLeft: { flex: 1 },
   ootdEmptyTitle: { ...typography.h4, color: Colors.text, marginBottom: 4 },
   ootdEmptySubtitle: { ...typography.caption, color: Colors.textSecondary },
-  ootdEmptyBtn: { borderRadius: 24, overflow: 'hidden' },
-  ootdEmptyBtnGradient: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  ootdEmptyBtn: { borderRadius: radius.full, overflow: 'hidden' },
+  ootdEmptyBtnGradient: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
 
   sectionTitle: {
     ...typography.h4,
     color: Colors.text,
     paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingRight: spacing.lg,
+    paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
   },
   seeAll: { ...typography.label, color: Colors.primary },
 
-  actionsScroll: { paddingHorizontal: spacing.lg, gap: spacing.md, paddingBottom: spacing.lg },
-  actionItem: { alignItems: 'center', width: 76 },
+  actionsScroll: { paddingHorizontal: spacing.lg, gap: spacing.lg, paddingBottom: spacing.xl },
+  actionItem: { alignItems: 'center', width: 80 },
   actionIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
+    width: 64,
+    height: 64,
+    borderRadius: radius.xxl,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
-    shadowColor: '#000',
+    marginBottom: 10,
+    shadowColor: '#2D1B2E',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
     elevation: 4,
   },
   actionLabel: { ...typography.caption, color: Colors.text, fontWeight: '700', textAlign: 'center' },
   actionSub: { fontSize: 10, color: Colors.textMuted, textAlign: 'center', marginTop: 1 },
 
-  categoryScroll: { paddingHorizontal: spacing.lg, gap: spacing.sm, paddingBottom: spacing.md },
+  categoryScroll: { paddingHorizontal: spacing.lg, gap: spacing.md, paddingBottom: spacing.xl },
   catCard: {
-    width: 90,
+    width: 96,
     backgroundColor: Colors.surface,
-    borderRadius: radius.lg,
+    borderRadius: radius.xxl,
     padding: spacing.md,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  catIcon: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  catIcon: { width: 48, height: 48, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   catLabel: { ...typography.caption, color: Colors.textSecondary, fontWeight: '600', textAlign: 'center' },
   catCount: { ...typography.h4, color: Colors.primary, marginTop: 2 },
 
-  recentScroll: { paddingHorizontal: spacing.lg, gap: spacing.md, paddingBottom: spacing.lg },
-  recentCard: { width: 110, height: 150, borderRadius: radius.lg, overflow: 'hidden' },
+  recentScroll: { paddingHorizontal: spacing.lg, gap: spacing.lg, paddingBottom: spacing.xl },
+  recentCard: { width: 116, height: 156, borderRadius: radius.xxl, overflow: 'hidden' },
   recentImage: { width: '100%', height: '100%' },
   recentGradient: { ...StyleSheet.absoluteFillObject },
   recentInfo: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: spacing.sm },
   recentName: { fontSize: 11, fontWeight: '700', color: 'white' },
   recentSub: { fontSize: 9, color: 'rgba(255,255,255,0.7)', marginTop: 1 },
 
-  emptyCta: { marginHorizontal: spacing.lg, marginTop: spacing.sm },
+  emptyCta: { marginHorizontal: spacing.lg, marginTop: spacing.md },
   emptyCtaGradient: {
-    borderRadius: radius.xl,
+    borderRadius: radius.xxl,
     padding: spacing.xl,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.primary + '20',
+    borderColor: Colors.primary + '25',
   },
   emptyCtaTitle: { ...typography.h4, color: Colors.text, marginTop: spacing.md, marginBottom: spacing.sm, textAlign: 'center' },
-  emptyCtaSubtitle: { ...typography.bodySmall, color: Colors.textSecondary, textAlign: 'center', lineHeight: 20, marginBottom: spacing.xl },
+  emptyCtaSubtitle: { ...typography.bodySmall, color: Colors.textSecondary, textAlign: 'center', lineHeight: 22, marginBottom: spacing.xl },
   emptyCtaBtn: { borderRadius: radius.full, overflow: 'hidden' },
   emptyCtaBtnGradient: {
     flexDirection: 'row',

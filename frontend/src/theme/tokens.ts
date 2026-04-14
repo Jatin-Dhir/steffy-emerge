@@ -1,9 +1,11 @@
-// Design Tokens - Production Grade Design System
+// Design Tokens - Bubbly, clean, aligned with Steffy white + pink theme
+
+import Colors from '../../constants/Colors';
 
 export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
+  xs: 6,
+  sm: 10,
+  md: 18,
   lg: 24,
   xl: 32,
   xxl: 48,
@@ -11,37 +13,25 @@ export const spacing = {
 };
 
 export const colors = {
-  // Brand
-  primary: '#FF6B9D',
-  primaryDark: '#E85A8C',
-  primaryLight: '#FFA0BC',
-  
-  secondary: '#C44569',
-  accent: '#FFA07A',
-  
-  // Neutrals
-  background: '#0A0A0F',
-  surface: '#1A1A2E',
-  surfaceLight: '#252541',
-  
-  // Text
-  text: '#FFFFFF',
-  textSecondary: '#B8B8D1',
-  textTertiary: '#8A8AA0',
-  
-  // Semantic
-  success: '#4CAF50',
-  warning: '#FFC107',
-  error: '#EF5350',
-  info: '#2196F3',
-  
-  // Borders & Dividers
-  border: 'rgba(255, 255, 255, 0.1)',
-  divider: 'rgba(255, 255, 255, 0.05)',
-  
-  // Overlay
-  overlay: 'rgba(0, 0, 0, 0.7)',
-  overlayLight: 'rgba(0, 0, 0, 0.4)',
+  primary: Colors.primary,
+  primaryDark: Colors.primary,
+  primaryLight: Colors.primaryLight,
+  secondary: Colors.secondary,
+  accent: Colors.accent,
+  background: Colors.background,
+  surface: Colors.surface,
+  surfaceLight: Colors.surfaceElevated,
+  text: Colors.text,
+  textSecondary: Colors.textSecondary,
+  textTertiary: Colors.textMuted,
+  success: Colors.success,
+  warning: Colors.warning,
+  error: Colors.error,
+  info: Colors.info,
+  border: Colors.border,
+  divider: Colors.divider,
+  overlay: Colors.overlay,
+  overlayLight: Colors.overlayLight,
 };
 
 export const typography = {
@@ -70,33 +60,33 @@ export const typography = {
 };
 
 export const borderRadius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 24,
+  sm: 12,
+  md: 16,
+  lg: 20,
+  xl: 24,
+  xxl: 28,
   full: 9999,
 };
 
 export const shadows = {
   sm: {
-    shadowColor: '#000',
+    shadowColor: '#2D1B2E',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
   md: {
-    shadowColor: '#000',
+    shadowColor: '#2D1B2E',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
     elevation: 4,
   },
   lg: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
+    shadowColor: '#2D1B2E',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
     shadowRadius: 16,
     elevation: 8,
   },

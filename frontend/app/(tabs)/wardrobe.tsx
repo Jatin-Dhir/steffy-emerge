@@ -19,9 +19,12 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useWardrobe, ClothingItem } from '../../contexts/WardrobeContext';
+import { useToast } from '../../contexts/ToastContext';
+import * as Haptics from 'expo-haptics';
 import Colors from '../../constants/Colors';
 import { spacing, typography, radius } from '../../constants/Theme';
 import Animated, { FadeIn, FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
+import { SkeletonWardrobeCard } from '../../components/SkeletonCard';
 
 const { width } = Dimensions.get('window');
 const COLS = width > 600 ? 4 : 3;
@@ -40,12 +43,12 @@ const CATEGORIES = [
 ];
 
 const TAG_COLORS: Record<string, string> = {
-  fabric: '#E8F4FD',
-  pattern: '#FEF3F2',
-  fit: '#F0FDF4',
-  occasion: '#FFF8F0',
-  season: '#F5F0FF',
-  color: '#FFF0F8',
+  fabric: '#FFF0F2',
+  pattern: '#FFE8EC',
+  fit: '#FCE7EA',
+  occasion: '#F8E8EB',
+  season: '#F5D9DC',
+  color: '#FFE4E8',
 };
 
 function DetailTag({ label, value, type }: { label: string; value: string; type: string }) {
@@ -59,6 +62,7 @@ function DetailTag({ label, value, type }: { label: string; value: string; type:
 
 export default function Wardrobe() {
   const { items, loading, addItem, deleteItem, recognizeClothing } = useWardrobe();
+  const { showToast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showItemModal, setShowItemModal] = useState(false);
@@ -211,6 +215,8 @@ export default function Wardrobe() {
         occasion: itemOccasion || undefined,
       });
       if (newItem) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        showToast('Added to wardrobe');
         setShowAddModal(false);
         resetForm();
       } else {
@@ -317,19 +323,21 @@ export default function Wardrobe() {
           showsVerticalScrollIndicator={false}
         >
           {loading ? (
-            <View style={styles.centeredState}>
-              <ActivityIndicator size="large" color={Colors.primary} />
+            <View style={styles.itemsGrid}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <SkeletonWardrobeCard key={i} width={ITEM_SIZE} />
+              ))}
             </View>
           ) : filteredItems.length === 0 ? (
             <Animated.View entering={FadeIn} style={styles.emptyState}>
               <View style={styles.emptyIconWrap}>
-                <Ionicons name="shirt-outline" size={40} color={Colors.primary} />
+                <Ionicons name="shirt-outline" size={48} color={Colors.primary} />
               </View>
               <Text style={styles.emptyTitle}>
                 {selectedCategory === 'all' ? 'Your wardrobe is empty' : `No ${selectedCategory} yet`}
               </Text>
               <Text style={styles.emptySubtitle}>
-                Tap + to add your first item — AI will detect it automatically.
+                Add your first piece — snap a photo and Steffy will detect it for you.
               </Text>
               <TouchableOpacity
                 style={styles.emptyAddBtn}
@@ -710,7 +718,7 @@ export default function Wardrobe() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1, backgroundColor: 'transparent' },
   safeArea: { flex: 1 },
 
   header: {
@@ -820,7 +828,7 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
     marginBottom: spacing.xl,
   },
   emptyAddBtn: { borderRadius: radius.full, overflow: 'hidden' },

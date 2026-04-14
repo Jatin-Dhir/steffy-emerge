@@ -189,7 +189,7 @@ export default function Settings() {
           </Animated.View>
 
           {/* Your Model (Body Photo) — KEY FEATURE */}
-          <Animated.View entering={FadeInDown.delay(80)}>
+          <Animated.View entering={FadeInDown.delay(80)} style={styles.sectionBlock}>
             <Text style={styles.sectionTitle}>Your Model</Text>
             <GlassCard style={styles.modelCard} padding={spacing.md}>
               <View style={styles.modelCardHeader}>
@@ -289,7 +289,7 @@ export default function Settings() {
           </Animated.View>
 
           {/* Wardrobe Breakdown */}
-          <Animated.View entering={FadeInDown.delay(160)}>
+          <Animated.View entering={FadeInDown.delay(160)} style={styles.sectionBlock}>
             <Text style={styles.sectionTitle}>Wardrobe</Text>
             <GlassCard style={styles.breakdownCard} padding={spacing.md}>
               {CATEGORY_BREAKDOWN.map((cat) => {
@@ -321,7 +321,7 @@ export default function Settings() {
           </Animated.View>
 
           {/* Account */}
-          <Animated.View entering={FadeInDown.delay(240)}>
+          <Animated.View entering={FadeInDown.delay(240)} style={styles.sectionBlock}>
             <Text style={styles.sectionTitle}>Account</Text>
             <GlassCard style={styles.menuCard} padding={0}>
               <TouchableOpacity
@@ -432,13 +432,14 @@ export default function Settings() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1, backgroundColor: 'transparent' },
   safeArea: { flex: 1 },
   header: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   title: { ...typography.h1, color: Colors.text },
   scrollContent: { padding: spacing.lg, paddingBottom: 100 },
 
   profileCard: { marginBottom: spacing.xl },
+  sectionBlock: { marginTop: spacing.xxl },
   profileHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
   avatarGradient: {
     width: 72,
@@ -466,7 +467,7 @@ const styles = StyleSheet.create({
   statName: { ...typography.caption, color: Colors.textSecondary },
   statDivider: { width: 1, height: 36, backgroundColor: Colors.border },
 
-  sectionTitle: { ...typography.h4, color: Colors.text, marginBottom: spacing.md, marginTop: spacing.sm },
+  sectionTitle: { ...typography.h4, color: Colors.text, marginBottom: spacing.md },
 
   modelCard: { marginBottom: spacing.xl },
   modelCardHeader: {
@@ -478,7 +479,7 @@ const styles = StyleSheet.create({
   modelCardTitle: { ...typography.label, color: Colors.text },
   modelCardSubtitle: { ...typography.caption, color: Colors.textSecondary, marginTop: 2, maxWidth: 240 },
 
-  photoPreviewWrap: { height: 220, borderRadius: radius.lg, overflow: 'hidden', marginBottom: spacing.md },
+  photoPreviewWrap: { height: 220, borderRadius: radius.xxl, overflow: 'hidden', marginBottom: spacing.md },
   photoPreview: { width: '100%', height: '100%' },
   changePhotoOverlay: {
     position: 'absolute',
@@ -579,14 +580,14 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: Colors.overlay, justifyContent: 'flex-end' },
   modalSheet: {
     backgroundColor: Colors.background,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
+    borderTopLeftRadius: radius.xxl,
+    borderTopRightRadius: radius.xxl,
     maxHeight: '85%',
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
   },
   modalHandle: {
-    width: 36,
+    width: 40,
     height: 4,
     borderRadius: 2,
     backgroundColor: Colors.border,

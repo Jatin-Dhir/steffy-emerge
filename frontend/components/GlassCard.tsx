@@ -21,15 +21,15 @@ export default function GlassCard({ children, style, padding = spacing.lg }: Gla
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: radius.lg,
+    borderRadius: radius.xxl,
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: '#2D1B2E',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
     elevation: 2,
   },
   content: {},
